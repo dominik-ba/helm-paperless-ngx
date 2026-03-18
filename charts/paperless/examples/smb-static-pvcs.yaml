@@ -1,0 +1,182 @@
+# Example: Static PV/PVC for Paperless volumes using SMB CSI driver
+# 
+# Use this when you want explicit control over SMB mount paths (e.g., specific NAS folders).
+# This bypasses dynamic provisioning and directly mounts existing SMB shares.
+#
+# Prerequisites:
+#   1. SMB CSI driver installed (csi-driver-smb chart)
+#   2. SMB credentials secret exists in the namespace
+#   3. SMB share accessible from cluster nodes
+#
+# Usage:
+#   1. Customize the volumeHandle and source paths below
+#   2. Apply: kubectl apply -f examples/smb-static-pvcs.yaml -n prototyping
+#   3. In values.yaml, reference these PVCs:
+#      persistence:
+#        consume:
+#          enabled: true
+#          existingClaim: paperless-consume
+#        data:
+#          enabled: true
+#          existingClaim: paperless-data
+#        # ... etc
+
+---
+# Consume volume (incoming documents)
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: paperless-consume-pv
+spec:
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  mountOptions:
+    - dir_mode=0777
+    - file_mode=0777
+    - uid=1000
+    - gid=1000
+  csi:
+    driver: smb.csi.k8s.io
+    volumeHandle: //192.168.2.39/paperless#consume#paperless-consume-pv
+    volumeAttributes:
+      source: //192.168.2.39/paperless
+      subDir: consume
+    nodeStageSecretRef:
+      name: smb-backend-secret
+      namespace: csi-driver-smb
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: paperless-consume
+  namespace: prototyping
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Gi
+  volumeName: paperless-consume-pv
+
+---
+# Data volume (search index, application data)
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: paperless-data-pv
+spec:
+  capacity:
+    storage: 20Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  mountOptions:
+    - dir_mode=0777
+    - file_mode=0777
+    - uid=1000
+    - gid=1000
+  csi:
+    driver: smb.csi.k8s.io
+    volumeHandle: //192.168.2.39/paperless#data#paperless-data-pv
+    volumeAttributes:
+      source: //192.168.2.39/paperless
+      subDir: data
+    nodeStageSecretRef:
+      name: smb-backend-secret
+      namespace: csi-driver-smb
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: paperless-data
+  namespace: prototyping
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 20Gi
+  volumeName: paperless-data-pv
+
+---
+# Export volume (exported documents)
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: paperless-export-pv
+spec:
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  mountOptions:
+    - dir_mode=0777
+    - file_mode=0777
+    - uid=1000
+    - gid=1000
+  csi:
+    driver: smb.csi.k8s.io
+    volumeHandle: //192.168.2.39/paperless#export#paperless-export-pv
+    volumeAttributes:
+      source: //192.168.2.39/paperless
+      subDir: export
+    nodeStageSecretRef:
+      name: smb-backend-secret
+      namespace: csi-driver-smb
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: paperless-export
+  namespace: prototyping
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Gi
+  volumeName: paperless-export-pv
+
+---
+# Media volume (stored document files - largest)
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: paperless-media-pv
+spec:
+  capacity:
+    storage: 100Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  mountOptions:
+    - dir_mode=0777
+    - file_mode=0777
+    - uid=1000
+    - gid=1000
+  csi:
+    driver: smb.csi.k8s.io
+    volumeHandle: //192.168.2.39/paperless#media#paperless-media-pv
+    volumeAttributes:
+      source: //192.168.2.39/paperless
+      subDir: media
+    nodeStageSecretRef:
+      name: smb-backend-secret
+      namespace: csi-driver-smb
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: paperless-media
+  namespace: prototyping
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 100Gi
+  volumeName: paperless-media-pv

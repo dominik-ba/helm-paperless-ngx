@@ -1,0 +1,210 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: paperless
+  namespace: {{ .Values.global.namespaceOverride | default .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: paperless
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: paperless
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: paperless
+    spec:
+      # Disable automatic service discovery environment variables to prevent conflicts
+      # with PAPERLESS_PORT which the container image tries to parse as port number
+      enableServiceLinks: false
+      containers:
+        - name: app
+          image: "{{ .Values.paperless.image.repository }}:{{ .Values.paperless.image.tag }}"
+          imagePullPolicy: {{ .Values.paperless.image.pullPolicy | default "IfNotPresent" }}
+          ports:
+            - containerPort: 8000
+              protocol: TCP
+          env:
+            # Database connection
+            - name: PAPERLESS_DBHOST
+              value: "{{ .Release.Name }}-postgresql"
+            - name: PAPERLESS_DBNAME
+              value: "{{ .Values.postgresql.auth.database }}"
+            - name: PAPERLESS_DBUSER
+              value: "{{ .Values.postgresql.auth.username }}"
+            - name: PAPERLESS_DBPASS
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.postgresql.auth.existingSecret | default "postgres-credentials" }}
+                  key: DB_PASSWORD
+            # Redis connection
+            {{- if and .Values.redis.auth.urlSecretName .Values.redis.auth.urlSecretKey }}
+            - name: PAPERLESS_REDIS
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.redis.auth.urlSecretName | quote }}
+                  key: {{ .Values.redis.auth.urlSecretKey | quote }}
+            {{- else }}
+            {{- $redisHost := printf "%s-redis-master" .Release.Name }}
+            {{- $redisPassword := "" }}
+            {{- if and .Values.redis.enabled .Values.redis.auth.enabled (or .Values.redis.auth.password .Values.redis.auth.existingSecret) }}
+            {{- /* When using an existingSecret, Bitnami Redis will mount redis-password into the Pod; we still need it in the URL, so fall back to templated value only if provided here. */}}
+            {{- if .Values.redis.auth.password }}
+            {{- $redisPassword = printf ":%s@" .Values.redis.auth.password }}
+            {{- end }}
+            {{- end }}
+            - name: PAPERLESS_REDIS
+              value: "redis://{{ $redisPassword }}{{ $redisHost }}:6379"
+            {{- end }}
+            
+            # Admin credentials from secret
+            # Secret can be created by: 1Password Operator, External Secrets, or this chart (secrets.create=true)
+            - name: PAPERLESS_ADMIN_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.secretName }}
+                  key: PAPERLESS_ADMIN_USER
+            - name: PAPERLESS_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.secretName }}
+                  key: PAPERLESS_ADMIN_PASSWORD
+            - name: PAPERLESS_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.secretName }}
+                  key: PAPERLESS_SECRET_KEY
+            
+            # Common environment variables
+            {{- if .Values.paperless.url }}
+            - name: PAPERLESS_URL
+              value: {{ .Values.paperless.url | quote }}
+            {{- end }}
+            {{- if .Values.paperless.hostPath }}
+            - name: PAPERLESS_FORCE_SCRIPT_NAME
+              value: {{ .Values.paperless.hostPath | quote }}
+            {{- end }}
+            {{- if .Values.paperless.timeZone }}
+            - name: PAPERLESS_TIME_ZONE
+              value: {{ .Values.paperless.timeZone | quote }}
+            {{- end }}
+            {{- if .Values.paperless.ocrLanguage }}
+            - name: PAPERLESS_OCR_LANGUAGE
+              value: {{ .Values.paperless.ocrLanguage | quote }}
+            {{- end }}
+            {{- if .Values.paperless.ocrLanguages }}
+            - name: PAPERLESS_OCR_LANGUAGES
+              value: {{ .Values.paperless.ocrLanguages | quote }}
+            {{- end }}
+            {{- if .Values.paperless.filenameFormat }}
+            - name: PAPERLESS_FILENAME_FORMAT
+              value: {{ .Values.paperless.filenameFormat | quote }}
+            {{- end }}
+            {{- if .Values.paperless.consumerPolling }}
+            - name: PAPERLESS_CONSUMER_POLLING
+              value: {{ .Values.paperless.consumerPolling | quote }}
+            {{- end }}
+            {{- if .Values.paperless.consumerRecursive }}
+            - name: PAPERLESS_CONSUMER_RECURSIVE
+              value: {{ .Values.paperless.consumerRecursive | quote }}
+            {{- end }}
+            {{- if .Values.paperless.consumerSubdirsAsTags }}
+            - name: PAPERLESS_CONSUMER_SUBDIRS_AS_TAGS
+              value: {{ .Values.paperless.consumerSubdirsAsTags | quote }}
+            {{- end }}
+            
+            # Document conversion (optional)
+            {{- if .Values.gotenberg.enabled }}
+            - name: PAPERLESS_TIKA_GOTENBERG_ENDPOINT
+              value: "http://gotenberg:3000"
+            {{- end }}
+            {{- if .Values.tika.enabled }}
+            - name: PAPERLESS_TIKA_ENABLED
+              value: "1"
+            - name: PAPERLESS_TIKA_ENDPOINT
+              value: "http://tika:9998"
+            {{- end }}
+            
+            # Additional custom env variables
+            {{- range $k, $v := .Values.paperless.extraEnv }}
+            - name: {{ $k }}
+              value: {{ $v | quote }}
+            {{- end }}
+          
+          # Health checks
+          {{- if .Values.paperless.startupProbe.enabled }}
+          startupProbe:
+            httpGet:
+              path: /
+              port: 8000
+            initialDelaySeconds: {{ .Values.paperless.startupProbe.initialDelaySeconds | default 10 }}
+            periodSeconds: {{ .Values.paperless.startupProbe.periodSeconds | default 10 }}
+            timeoutSeconds: {{ .Values.paperless.startupProbe.timeoutSeconds | default 5 }}
+            failureThreshold: {{ .Values.paperless.startupProbe.failureThreshold | default 30 }}
+          {{- end }}
+          {{- if .Values.paperless.livenessProbe.enabled }}
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8000
+            initialDelaySeconds: {{ .Values.paperless.livenessProbe.initialDelaySeconds | default 60 }}
+            periodSeconds: {{ .Values.paperless.livenessProbe.periodSeconds | default 10 }}
+            timeoutSeconds: {{ .Values.paperless.livenessProbe.timeoutSeconds | default 5 }}
+            failureThreshold: {{ .Values.paperless.livenessProbe.failureThreshold | default 6 }}
+          {{- end }}
+          {{- if .Values.paperless.readinessProbe.enabled }}
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8000
+            initialDelaySeconds: {{ .Values.paperless.readinessProbe.initialDelaySeconds | default 45 }}
+            periodSeconds: {{ .Values.paperless.readinessProbe.periodSeconds | default 10 }}
+            timeoutSeconds: {{ .Values.paperless.readinessProbe.timeoutSeconds | default 5 }}
+            failureThreshold: {{ .Values.paperless.readinessProbe.failureThreshold | default 6 }}
+          {{- end }}
+          
+          volumeMounts:
+            {{- if .Values.persistence.consume.enabled }}
+            - name: consume
+              mountPath: /usr/src/paperless/consume
+            {{- end }}
+            {{- if .Values.persistence.data.enabled }}
+            - name: data
+              mountPath: /usr/src/paperless/data
+            {{- end }}
+            {{- if .Values.persistence.export.enabled }}
+            - name: export
+              mountPath: /usr/src/paperless/export
+            {{- end }}
+            {{- if .Values.persistence.media.enabled }}
+            - name: media
+              mountPath: /usr/src/paperless/media
+            {{- end }}
+          
+          {{- with .Values.paperless.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      
+      volumes:
+        {{- if .Values.persistence.consume.enabled }}
+        - name: consume
+          persistentVolumeClaim:
+            claimName: {{ .Values.persistence.consume.existingClaim | default "paperless-consume" }}
+        {{- end }}
+        {{- if .Values.persistence.data.enabled }}
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ .Values.persistence.data.existingClaim | default "paperless-data" }}
+        {{- end }}
+        {{- if .Values.persistence.export.enabled }}
+        - name: export
+          persistentVolumeClaim:
+            claimName: {{ .Values.persistence.export.existingClaim | default "paperless-export" }}
+        {{- end }}
+        {{- if .Values.persistence.media.enabled }}
+        - name: media
+          persistentVolumeClaim:
+            claimName: {{ .Values.persistence.media.existingClaim | default "paperless-media" }}
+        {{- end }}

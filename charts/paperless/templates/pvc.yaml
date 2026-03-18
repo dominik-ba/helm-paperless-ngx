@@ -1,0 +1,35 @@
+{{- /*
+Create PVCs for paperless volumes.
+Supports two modes per volume:
+  - Dynamic: if storageClassName is set, create PVC with that class
+  - Static PV binding: if no storageClassName and no existingClaim, create PVC bound to a PV (via volumeName)
+  - If existingClaim is set, skip creation and reuse that claim
+
+Volumes: consume, data, export, media
+*/ -}}
+
+{{- range $name, $config := .Values.persistence }}
+{{- if and $config.enabled (not $config.existingClaim) }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: paperless-{{ $name }}
+  namespace: {{ $.Values.global.namespaceOverride | default $.Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: paperless
+    app.kubernetes.io/component: storage
+spec:
+  accessModes:
+    {{- toYaml $config.accessModes | nindent 4 }}
+  {{- if $config.volumeName }}
+  volumeName: {{ $config.volumeName }}
+  {{- else }}
+  volumeName: paperless-{{ $name }}-pv
+  {{- end }}
+  storageClassName: {{ $config.storageClassName | default "" | quote }}
+  resources:
+    requests:
+      storage: {{ $config.size }}
+{{- end }}
+{{- end }}

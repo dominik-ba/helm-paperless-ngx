@@ -1,0 +1,5 @@
+# Helm dependency tarballs (downloaded by `helm dependency update`, not committed)
+charts/paperless/charts/*.tgz
+
+# OS
+.DS_Store

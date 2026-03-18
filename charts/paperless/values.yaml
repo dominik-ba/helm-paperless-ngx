@@ -1,0 +1,385 @@
+global:
+  namespaceOverride: paperless
+
+# ==============================================================================
+# Paperless Secrets
+# ==============================================================================
+# This chart expects a Secret named 'paperless-secret' to exist with these keys:
+#   - PAPERLESS_ADMIN_USER
+#   - PAPERLESS_ADMIN_PASSWORD
+#   - PAPERLESS_SECRET_KEY
+#
+# The secret can be created by:
+#   1) External secret management (e.g., 1Password Operator, External Secrets Operator)
+#   2) This chart (if secrets.create=true)
+#
+# For production, use external secret management. For testing, enable chart-based creation.
+secrets:
+  create: false # Set to true to create Secret from adminUser/adminPassword/secretKey below
+  secretName: paperless-secret # Name of the secret to read credentials from
+  adminUser: "admin"
+  adminPassword: "changeme"
+  secretKey: "change-me-to-random-string" # Generate: openssl rand -base64 32
+
+# ==============================================================================
+# Database Credentials (PostgreSQL)
+# ==============================================================================
+# These are used to create the postgres-credentials Secret for the DB subchart.
+# For production, consider moving to 1Password or using external secret management.
+#
+# IMPORTANT: APP_DB_PASSWORD and DB_PASSWORD MUST be identical!
+# The Bitnami PostgreSQL chart uses these for the 'paperless' user password.
+# If they differ, the StatefulSet will fail to initialize.
+POSTGRES_PASSWORD: "your-password-here"
+APP_DB_PASSWORD: "your-password-here" # Must match DB_PASSWORD (see postgresql.primary.auth below)
+
+## subcharts
+postgresql:
+  # image:
+  #   tag: 18
+
+  enabled: true
+  createSecret: true
+  auth:
+    username: paperless
+    database: paperless
+    existingSecret: postgres-credentials
+    secretKeys:
+      adminPasswordKey: POSTGRES_PASSWORD
+      userPasswordKey: DB_PASSWORD # Must match APP_DB_PASSWORD in the secret
+
+  primary:
+    podSecurityContext:
+      enabled: true
+      fsGroup: 1000
+      fsGroupChangePolicy: Always
+
+    containerSecurityContext:
+      enabled: true
+      runAsUser: 1000
+      runAsGroup: 1000
+      runAsNonRoot: true
+
+    resources:
+      limits:
+        cpu: 500m
+        memory: 1Gi
+      requests:
+        cpu: 250m
+        memory: 512Mi
+
+    persistence:
+      storageClass: local-path
+      size: 20Gi
+      accessModes:
+        - ReadWriteOnce
+
+  # All Default:
+  # service:
+  #   type: ClusterIP
+  #   ports:
+  #     postgresql: 5432
+
+  backup:
+    enabled: true
+    cronjob:
+      schedule: "0 2 * * *" # Daily backup at 2 AM
+    pvc:
+      storageClass: qnap-smb-postgres
+
+# Redis subchart
+redis:
+  enabled: true
+  # For production, configure authentication and resources:
+  auth:
+    enabled: false
+    password: ""
+    # If set, use a pre-created secret (e.g., from 1Password) instead of inline password.
+    existingSecret: ""
+    existingSecretPasswordKey: redis-password
+    # If set, Paperless will read PAPERLESS_REDIS from this secret (key must exist below).
+    urlSecretName: ""
+    urlSecretKey: PAPERLESS_REDIS
+
+# ==============================================================================
+# Application Configuration
+# ==============================================================================
+
+# Paperless application settings
+paperless:
+  image:
+    repository: ghcr.io/paperless-ngx/paperless-ngx
+    tag: "2.20"
+    pullPolicy: IfNotPresent
+  # Probe tuning to avoid flapping on slow starts
+  livenessProbe:
+    enabled: true
+    initialDelaySeconds: 90
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 6
+  readinessProbe:
+    enabled: true
+    initialDelaySeconds: 70
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 6
+  startupProbe:
+    enabled: true
+    # Give the app time to run migrations and warm caches
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 40
+
+  # Common environment variables (exposed for convenience)
+  # External URL for generating links
+  url: "http://paperless.local"
+
+  # Optional subpath hosting (e.g., /paperless). Leave empty for root path "/".
+  hostPath: ""
+
+  # Optional filename format (see PAPERLESS_FILENAME_FORMAT in upstream docs)
+  filenameFormat: ""
+
+  # Time zone for timestamps
+  timeZone: "Europe/Berlin"
+
+  # OCR language configuration
+  ocrLanguage: "eng" # Primary language
+  ocrLanguages: "eng+deu" # All languages to install
+
+  # Consumer (file watcher) settings
+  consumerPolling: "60" # Check for new files every N seconds
+  consumerRecursive: "true" # Scan subdirectories
+  consumerSubdirsAsTags: "true" # Create tags from subfolder names
+
+  # Additional custom environment variables
+  extraEnv: {}
+  #   PAPERLESS_WEBSERVER_WORKERS: "2"
+  #   PAPERLESS_TASK_WORKERS: "2"
+
+  # Resource limits
+  resources: {}
+  #   requests:
+  #     cpu: 100m
+  #     memory: 512Mi
+  #   limits:
+  #     cpu: 1000m
+  #     memory: 2Gi
+
+# Ingress configuration
+# When using a subpath (e.g., /paperless), ensure:
+#   paperless.url is set to the base URL (e.g., "http://example.com")
+ingress:
+  enabled: false
+  className: traefik
+  annotations: {}
+    # traefik.ingress.kubernetes.io/router.middlewares: default-redirect-https@kubernetescrd
+    # traefik.ingress.kubernetes.io/router.entrypoints: web
+  hosts:
+    - host: paperless.local
+
+  tls: []
+  #  - secretName: paperless-tls
+  #    hosts:
+  #      - paperless.local
+
+# Persistence configuration
+# Four volumes supported: consume (input), data, export, media
+#
+# Two modes per volume:
+#   1) Dynamic provisioning: set storageClassName + size (chart creates PVC)
+#   2) Static binding: set existingClaim (you create PV/PVC manually, e.g., for SMB)
+#
+# Example for SMB static mounts:
+#   consume:
+#     enabled: true
+#     existingClaim: paperless-consume-smb  # You create this PVC referencing your SMB PV
+#
+# Example for dynamic StorageClass:
+#   data:
+#     enabled: true
+#     storageClassName: qnap-smb
+#     size: 10Gi
+persistence:
+  # Consume directory (incoming documents)
+  consume:
+    enabled: false
+    volumeName: paperless-consume-pv
+    existingClaim: "" # Set to PVC name for static binding
+    storageClassName: "" # Set to storage class for dynamic provisioning
+    size: 5Gi
+    accessModes:
+      - ReadWriteMany
+
+  # Data directory (search index, SQLite if not using Postgres)
+  data:
+    enabled: false
+    volumeName: paperless-data-pv
+    existingClaim: ""
+    storageClassName: ""
+    size: 10Gi
+    accessModes:
+      - ReadWriteMany
+
+  # Export directory (for exporting documents)
+  export:
+    enabled: false
+    volumeName: paperless-export-pv
+    existingClaim: ""
+    storageClassName: ""
+    size: 5Gi
+    accessModes:
+      - ReadWriteMany
+
+  # Media directory (stored document files)
+  media:
+    enabled: false
+    volumeName: paperless-media-pv
+    existingClaim: ""
+    storageClassName: ""
+    size: 50Gi
+    accessModes:
+      - ReadWriteMany
+
+# Optional helpers for document conversion
+gotenberg:
+  enabled: false
+  image:
+    repository: docker.io/gotenberg/gotenberg
+    tag: "8.24"
+  # Converts Office documents and emails to PDF
+  # Accessible at http://gotenberg:3000
+
+tika:
+  enabled: false
+  image:
+    repository: docker.io/apache/tika
+    tag: "3.1.0"
+  # Extracts text and metadata from various file formats
+  # Accessible at http://tika:9998
+#
+# paperless:
+#   controllers:
+#     paperless:
+#       forceRename: paperless
+#       annotations:
+#         reloader.stakater.com/auto: "true"
+
+#       containers:
+#         app:
+#           image:
+#             repository: ghcr.io/paperless-ngx/paperless-ngx
+#             tag: 2.19
+#           env:
+#             # Configure application
+#             PAPERLESS_SECRET_KEY:
+#               valueFrom:
+#                 secretKeyRef:
+#                   name: paperless-secret
+#                   key: PAPERLESS_SECRET_KEY
+#             PAPERLESS_URL: https://paperless.atuin.dedyn.io
+#             PAPERLESS_PORT: "8000"
+#             PAPERLESS_TIME_ZONE: "Europe/Berlin"
+#             PAPERLESS_WEBSERVER_WORKERS: "2"
+#             PAPERLESS_TASK_WORKERS: "2"
+#             # Configure folders
+#             PAPERLESS_CONSUMPTION_DIR: /data/nas/incoming
+#             PAPERLESS_DATA_DIR: /data/local/data
+#             PAPERLESS_EXPORT_DIR: /data/nas/export
+#             PAPERLESS_MEDIA_ROOT: /data/local/media
+#             # Configure folder importer
+#             PAPERLESS_CONSUMER_POLLING: "60"
+#             PAPERLESS_CONSUMER_RECURSIVE: "true"
+#             PAPERLESS_CONSUMER_SUBDIRS_AS_TAGS: "true"
+#             # Configure OCR
+#             PAPERLESS_OCR_LANGUAGES: deu+eng
+#             PAPERLESS_OCR_LANGUAGE: deu+eng
+#             # Configure redis integration
+#             PAPERLESS_REDIS: redis://paperless-redis.selfhosted.svc.cluster.local:6379
+#             # Configure user permissions
+#             USERMAP_GID: "65542" # gladius:external-services
+#             # Configure admin user
+#             PAPERLESS_ADMIN_USER:
+#               valueFrom:
+#                 secretKeyRef:
+#                   name: paperless-secret
+#                   key: PAPERLESS_ADMIN_USER
+#             PAPERLESS_ADMIN_PASSWORD:
+#               valueFrom:
+#                 secretKeyRef:
+#                   name: paperless-secret
+#                   key: PAPERLESS_ADMIN_PASSWORD
+#           probes:
+#             liveness:
+#               enabled: true
+#             readiness:
+#               enabled: true
+#             startup:
+#               enabled: true
+#               spec:
+#                 failureThreshold: 30
+#                 periodSeconds: 5
+#           resources:
+#             requests:
+#               cpu: 25m
+#               memory: 2Gi
+#             limits:
+#               memory: 6Gi
+
+#     redis:
+#       containers:
+#         redis:
+#           image:
+#             repository: ghcr.io/valkey-io/valkey
+#             tag: 9.0.0
+#           resources:
+#             requests:
+#               cpu: 5m
+#               memory: 32Mi
+#             limits:
+#               memory: 128Mi
+
+#   service:
+#     app:
+#       forceRename: paperless
+#       primary: true
+#       controller: paperless
+#       ports:
+#         http:
+#           port: &port 8000
+#     redis:
+#       controller: redis
+#       ports:
+#         http:
+#           port: 6379
+
+#   persistence:
+#     data:
+#       existingClaim: paperless-data
+#       advancedMounts:
+#         paperless:
+#           app:
+#             - path: /data/local
+#     nas:
+#       type: nfs
+#       path: /mnt/tank/Apps/paperless
+#       server: gladius.bjw-s.internal
+#       advancedMounts:
+#         paperless:
+#           app:
+#             - path: /data/nas
+
+#   route:
+#     app:
+#       hostnames:
+#         - paperless.bjw-s.dev
+#       parentRefs:
+#         - name: envoy-internal
+#           namespace: network
+
+#       rules:
+#         - backendRefs:
+#             - identifier: app
+#               port: *port
