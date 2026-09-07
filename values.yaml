@@ -3,7 +3,7 @@ global:
 
 # ==============================================================================
 # Paperless Secrets
-# ==============================================================================
+# ==================================================================
 # This chart expects a Secret named 'paperless-secret' to exist with these keys:
 #   - PAPERLESS_ADMIN_USER
 #   - PAPERLESS_ADMIN_PASSWORD
@@ -69,7 +69,7 @@ postgresql:
         memory: 512Mi
 
     persistence:
-      storageClass: local-path
+      storageClass: "" # Set to your storage class, or leave empty for the cluster default
       size: 20Gi
       accessModes:
         - ReadWriteOnce
@@ -85,7 +85,7 @@ postgresql:
     cronjob:
       schedule: "0 2 * * *" # Daily backup at 2 AM
     pvc:
-      storageClass: qnap-smb-postgres
+      storageClass: "" # Set to your storage class, or leave empty for the cluster default
 
 # Redis subchart
 redis:
@@ -148,6 +148,8 @@ paperless:
   # OCR language configuration
   ocrLanguage: "eng" # Primary language
   ocrLanguages: "eng+deu" # All languages to install
+  # OCR mode (e.g., "redo", "normal"). If set, this will be passed as PAPERLESS_OCR_MODE.
+  ocrMode: "redo"
 
   # Consumer (file watcher) settings
   consumerPolling: "60" # Check for new files every N seconds
@@ -248,7 +250,7 @@ gotenberg:
   enabled: false
   image:
     repository: docker.io/gotenberg/gotenberg
-    tag: "8.24"
+    tag: "8.36"
   # Converts Office documents and emails to PDF
   # Accessible at http://gotenberg:3000
 
@@ -259,127 +261,3 @@ tika:
     tag: "3.1.0"
   # Extracts text and metadata from various file formats
   # Accessible at http://tika:9998
-#
-# paperless:
-#   controllers:
-#     paperless:
-#       forceRename: paperless
-#       annotations:
-#         reloader.stakater.com/auto: "true"
-
-#       containers:
-#         app:
-#           image:
-#             repository: ghcr.io/paperless-ngx/paperless-ngx
-#             tag: 2.19
-#           env:
-#             # Configure application
-#             PAPERLESS_SECRET_KEY:
-#               valueFrom:
-#                 secretKeyRef:
-#                   name: paperless-secret
-#                   key: PAPERLESS_SECRET_KEY
-#             PAPERLESS_URL: https://paperless.atuin.dedyn.io
-#             PAPERLESS_PORT: "8000"
-#             PAPERLESS_TIME_ZONE: "Europe/Berlin"
-#             PAPERLESS_WEBSERVER_WORKERS: "2"
-#             PAPERLESS_TASK_WORKERS: "2"
-#             # Configure folders
-#             PAPERLESS_CONSUMPTION_DIR: /data/nas/incoming
-#             PAPERLESS_DATA_DIR: /data/local/data
-#             PAPERLESS_EXPORT_DIR: /data/nas/export
-#             PAPERLESS_MEDIA_ROOT: /data/local/media
-#             # Configure folder importer
-#             PAPERLESS_CONSUMER_POLLING: "60"
-#             PAPERLESS_CONSUMER_RECURSIVE: "true"
-#             PAPERLESS_CONSUMER_SUBDIRS_AS_TAGS: "true"
-#             # Configure OCR
-#             PAPERLESS_OCR_LANGUAGES: deu+eng
-#             PAPERLESS_OCR_LANGUAGE: deu+eng
-#             # Configure redis integration
-#             PAPERLESS_REDIS: redis://paperless-redis.selfhosted.svc.cluster.local:6379
-#             # Configure user permissions
-#             USERMAP_GID: "65542" # gladius:external-services
-#             # Configure admin user
-#             PAPERLESS_ADMIN_USER:
-#               valueFrom:
-#                 secretKeyRef:
-#                   name: paperless-secret
-#                   key: PAPERLESS_ADMIN_USER
-#             PAPERLESS_ADMIN_PASSWORD:
-#               valueFrom:
-#                 secretKeyRef:
-#                   name: paperless-secret
-#                   key: PAPERLESS_ADMIN_PASSWORD
-#           probes:
-#             liveness:
-#               enabled: true
-#             readiness:
-#               enabled: true
-#             startup:
-#               enabled: true
-#               spec:
-#                 failureThreshold: 30
-#                 periodSeconds: 5
-#           resources:
-#             requests:
-#               cpu: 25m
-#               memory: 2Gi
-#             limits:
-#               memory: 6Gi
-
-#     redis:
-#       containers:
-#         redis:
-#           image:
-#             repository: ghcr.io/valkey-io/valkey
-#             tag: 9.0.0
-#           resources:
-#             requests:
-#               cpu: 5m
-#               memory: 32Mi
-#             limits:
-#               memory: 128Mi
-
-#   service:
-#     app:
-#       forceRename: paperless
-#       primary: true
-#       controller: paperless
-#       ports:
-#         http:
-#           port: &port 8000
-#     redis:
-#       controller: redis
-#       ports:
-#         http:
-#           port: 6379
-
-#   persistence:
-#     data:
-#       existingClaim: paperless-data
-#       advancedMounts:
-#         paperless:
-#           app:
-#             - path: /data/local
-#     nas:
-#       type: nfs
-#       path: /mnt/tank/Apps/paperless
-#       server: gladius.bjw-s.internal
-#       advancedMounts:
-#         paperless:
-#           app:
-#             - path: /data/nas
-
-#   route:
-#     app:
-#       hostnames:
-#         - paperless.bjw-s.dev
-#       parentRefs:
-#         - name: envoy-internal
-#           namespace: network
-
-#       rules:
-#         - backendRefs:
-#             - identifier: app
-#               port: *port

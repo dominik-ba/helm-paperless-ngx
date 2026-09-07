@@ -6,8 +6,8 @@ on:
       - 'v*.*.*'
 
 permissions:
-  contents: read
-  packages: write
+  contents: write  # required for creating GitHub Releases
+  packages: write  # required for pushing to ghcr.io
 
 jobs:
   release:
@@ -30,7 +30,7 @@ jobs:
 
       - name: Verify Chart.yaml version matches tag
         run: |
-          chart_version=$(grep '^version:' charts/paperless/Chart.yaml | awk '{print $2}')
+          chart_version=$(grep '^version:' Chart.yaml | awk '{print $2}')
           tag_version="${{ steps.version.outputs.version }}"
           if [ "$chart_version" != "$tag_version" ]; then
             echo "ERROR: Chart.yaml version ($chart_version) does not match tag ($tag_version)"
@@ -39,15 +39,15 @@ jobs:
           echo "OK: Chart version $chart_version matches tag"
 
       - name: Update dependencies
-        run: helm dependency update charts/paperless
+        run: helm dependency update .
 
       - name: Lint chart (strict)
-        run: helm lint charts/paperless --strict
+        run: helm lint . --strict
 
       - name: Package chart
         run: |
           mkdir -p .cr-release-packages
-          helm package charts/paperless --destination .cr-release-packages/
+          helm package . --destination .cr-release-packages/
 
       - name: Log in to GitHub Container Registry
         run: |
@@ -69,11 +69,11 @@ jobs:
             ## Installation
 
             ```bash
-            helm install paperless oci://ghcr.io/dominik-ba/charts/paperless --version ${{ steps.version.outputs.version }}
+            helm install paperless oci://ghcr.io/${{ github.repository_owner }}/charts/paperless --version ${{ steps.version.outputs.version }}
             ```
 
             ## Upgrade
 
             ```bash
-            helm upgrade paperless oci://ghcr.io/dominik-ba/charts/paperless --version ${{ steps.version.outputs.version }}
+            helm upgrade paperless oci://ghcr.io/${{ github.repository_owner }}/charts/paperless --version ${{ steps.version.outputs.version }}
             ```

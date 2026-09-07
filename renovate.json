@@ -5,7 +5,7 @@
     {
       "customType": "regex",
       "description": "Track paperless-ngx Docker image tag via appVersion renovate comment in Chart.yaml",
-      "fileMatch": ["^charts/.*/Chart\\.yaml$"],
+      "fileMatch": ["^Chart\\.yaml$"],
       "matchStrings": [
         "# renovate: depName=(?<depName>[^\\s]+)\\s+(?:registryUrl=(?<registryUrl>[^\\s]+)\\s+)?datasource=(?<datasource>[^\\s]+)\\nappVersion: \"(?<currentValue>[^\"]+)\""
       ]
@@ -13,7 +13,7 @@
     {
       "customType": "regex",
       "description": "Track docker images hardcoded in Helm template files",
-      "fileMatch": ["^charts/.*/templates/.*\\.ya?ml$"],
+      "fileMatch": ["^templates/.*\\.ya?ml$"],
       "matchStrings": [
         "image: (?<depName>[a-z0-9./]+):(?<currentValue>[a-z0-9._-]+)"
       ],

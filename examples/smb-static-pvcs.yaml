@@ -10,7 +10,7 @@
 #
 # Usage:
 #   1. Customize the volumeHandle and source paths below
-#   2. Apply: kubectl apply -f examples/smb-static-pvcs.yaml -n prototyping
+#   2. Apply: kubectl apply -f examples/smb-static-pvcs.yaml -n paperless
 #   3. In values.yaml, reference these PVCs:
 #      persistence:
 #        consume:
@@ -40,9 +40,9 @@ spec:
     - gid=1000
   csi:
     driver: smb.csi.k8s.io
-    volumeHandle: //192.168.2.39/paperless#consume#paperless-consume-pv
+    volumeHandle: //192.168.1.100/paperless#consume#paperless-consume-pv
     volumeAttributes:
-      source: //192.168.2.39/paperless
+      source: //192.168.1.100/paperless
       subDir: consume
     nodeStageSecretRef:
       name: smb-backend-secret
@@ -52,7 +52,7 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: paperless-consume
-  namespace: prototyping
+  namespace: paperless
 spec:
   accessModes:
     - ReadWriteMany
@@ -80,9 +80,9 @@ spec:
     - gid=1000
   csi:
     driver: smb.csi.k8s.io
-    volumeHandle: //192.168.2.39/paperless#data#paperless-data-pv
+    volumeHandle: //192.168.1.100/paperless#data#paperless-data-pv
     volumeAttributes:
-      source: //192.168.2.39/paperless
+      source: //192.168.1.100/paperless
       subDir: data
     nodeStageSecretRef:
       name: smb-backend-secret
@@ -92,7 +92,7 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: paperless-data
-  namespace: prototyping
+  namespace: paperless
 spec:
   accessModes:
     - ReadWriteMany
@@ -120,9 +120,9 @@ spec:
     - gid=1000
   csi:
     driver: smb.csi.k8s.io
-    volumeHandle: //192.168.2.39/paperless#export#paperless-export-pv
+    volumeHandle: //192.168.1.100/paperless#export#paperless-export-pv
     volumeAttributes:
-      source: //192.168.2.39/paperless
+      source: //192.168.1.100/paperless
       subDir: export
     nodeStageSecretRef:
       name: smb-backend-secret
@@ -132,7 +132,7 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: paperless-export
-  namespace: prototyping
+  namespace: paperless
 spec:
   accessModes:
     - ReadWriteMany
@@ -160,9 +160,9 @@ spec:
     - gid=1000
   csi:
     driver: smb.csi.k8s.io
-    volumeHandle: //192.168.2.39/paperless#media#paperless-media-pv
+    volumeHandle: //192.168.1.100/paperless#media#paperless-media-pv
     volumeAttributes:
-      source: //192.168.2.39/paperless
+      source: //192.168.1.100/paperless
       subDir: media
     nodeStageSecretRef:
       name: smb-backend-secret
@@ -172,7 +172,7 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: paperless-media
-  namespace: prototyping
+  namespace: paperless
 spec:
   accessModes:
     - ReadWriteMany

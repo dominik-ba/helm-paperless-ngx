@@ -1,5 +1,12 @@
 # Helm dependency tarballs (downloaded by `helm dependency update`, not committed)
-charts/paperless/charts/*.tgz
+*.tgz
+/charts/
 
 # OS
 .DS_Store
+Thumbs.db
+
+# Editors
+.idea/
+.vscode/
+*.swp

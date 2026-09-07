@@ -2,17 +2,9 @@ name: CI
 
 on:
   pull_request:
-    paths:
-      - 'charts/**'
-      - 'ct.yaml'
-      - '.github/workflows/ci.yml'
   push:
     branches:
       - main
-    paths:
-      - 'charts/**'
-      - 'ct.yaml'
-      - '.github/workflows/ci.yml'
 
 jobs:
   lint-and-test:
@@ -30,14 +22,14 @@ jobs:
           version: v3.17.0
 
       - name: Update dependencies
-        run: helm dependency update charts/paperless
+        run: helm dependency update .
 
       - name: Lint chart (strict)
-        run: helm lint charts/paperless --strict
+        run: helm lint . --strict
 
       - name: Template chart (default values)
         run: |
-          helm template paperless charts/paperless \
+          helm template paperless . \
             --namespace paperless \
             > /tmp/paperless-rendered.yaml
 
@@ -67,7 +59,7 @@ jobs:
 
       - name: Template chart (secrets.create=true for linting)
         run: |
-          helm template paperless charts/paperless \
+          helm template paperless . \
             --namespace paperless \
             --set secrets.create=true \
             --set postgresql.createSecret=true \
@@ -83,7 +75,7 @@ jobs:
 
       - name: Template chart (all optional features enabled)
         run: |
-          helm template paperless charts/paperless \
+          helm template paperless . \
             --namespace paperless \
             --set gotenberg.enabled=true \
             --set tika.enabled=true \
