@@ -250,7 +250,7 @@ gotenberg:
   enabled: false
   image:
     repository: docker.io/gotenberg/gotenberg
-    tag: "8.36"
+    tag: "8.37"
   # Converts Office documents and emails to PDF
   # Accessible at http://gotenberg:3000
 
