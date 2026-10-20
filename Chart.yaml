@@ -15,7 +15,7 @@ maintainers:
 
 dependencies:
   - name: postgresql
-    version: 18.12.4
+    version: 18.12.14
     repository: "oci://registry-1.docker.io/bitnamicharts"
     condition: postgresql.enabled
   - name: redis
