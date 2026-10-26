@@ -11,9 +11,9 @@ published as an OCI artifact to `oci://ghcr.io/dominik-ba/charts/paperless`. The
 public; anyone can open pull requests from forks.
 
 The chart has no site-specific configuration (no secret manager, hostnames, node
-placement or storage classes). Consumers add those in their own wrapper chart that
-depends on this one (see "Using this chart as a subchart" in `README.md`);
-site-specific values belong there, not here.
+placement or storage classes). Consumers configure it with their own values file and
+only need a wrapper chart when they add resources this chart does not render (see
+"Site-specific setup" in `README.md`). Site-specific values belong there, not here.
 
 ## Layout
 
