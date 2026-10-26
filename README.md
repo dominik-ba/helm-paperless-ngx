@@ -15,8 +15,8 @@ customizations. It's designed to be:
 - **Reusable**: use directly in any Kubernetes cluster
 - **Simple**: minimal dependencies, clear configuration
 - **Flexible**: supports multiple secret management strategies
-- **Composable**: can be used as a subchart in wrapper charts (e.g. with
-  1Password integration)
+- **Composable**: configure it with your own values file, or use it as a subchart
+  of a wrapper chart when you add resources (e.g. 1Password items)
 
 ## Features
 
@@ -204,10 +204,47 @@ spec:
       - ServerSideApply=true
 ```
 
-## Using this chart as a subchart
+## Site-specific setup
 
-This chart is intentionally free of any site-specific configuration. To layer
-that on top, create a small wrapper chart that depends on this one:
+This chart is intentionally free of any site-specific configuration. How you add
+yours depends on whether you only configure the chart or also need extra
+Kubernetes resources.
+
+### Configuration only: a values file
+
+Hostname, storage classes, existing claims, resources, node placement, the name
+of an existing Secret: everything the chart exposes in `values.yaml` goes into
+your own values file. No wrapper chart is needed.
+
+```bash
+helm install paperless oci://ghcr.io/dominik-ba/charts/paperless \
+  --version 0.3.0 -n paperless --create-namespace -f my-values.yaml
+```
+
+With ArgoCD, keep the values file in your own Git repository and reference it
+from a multi-source `Application`:
+
+```yaml
+spec:
+  sources:
+    - chart: paperless
+      repoURL: ghcr.io/dominik-ba/charts
+      targetRevision: 0.3.0
+      helm:
+        valueFiles:
+          - $values/paperless/values.yaml
+    - repoURL: https://github.com/<you>/<your-config-repo>.git
+      targetRevision: main
+      ref: values
+```
+
+### Additional resources: a wrapper chart
+
+If you need resources this chart does not render, such as a secret-manager
+object (1Password `OnePasswordItem`, External Secrets `ExternalSecret`) that
+creates the `paperless-secret`, static PVs, an extra ingress or middleware, or
+monitoring objects, create a small wrapper chart that depends on this one and
+adds them in its own `templates/`:
 
 ```yaml
 # Chart.yaml
@@ -216,21 +253,16 @@ dependencies:
     version: "0.3.0"
     repository: "oci://ghcr.io/dominik-ba/charts"
 
-# values.yaml
+# values.yaml: values for this chart go under the dependency name
 paperless:
   secrets:
     create: false
   paperless:
     url: "https://paperless.example.com"
-  # ... more configuration
 ```
 
-Then add whatever organization-specific features you need (1Password
-integration, custom ingress, monitoring) in the wrapper. For a concrete
-example of this pattern (1Password integration, fixed ingress host, SMB
-storage), see the `paperless-app` wrapper chart in
-[dominik-ba/my-raspi-cluster](https://github.com/dominik-ba/my-raspi-cluster/tree/main/gitops/helm/paperless-app),
-which consumes this chart as an OCI dependency.
+Commit `Chart.lock` and let `helm dependency build` (or ArgoCD) fetch the chart;
+don't commit the downloaded `charts/*.tgz`.
 
 ## Troubleshooting
 

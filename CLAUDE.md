@@ -10,8 +10,8 @@ Claude Code operating rules and does not repeat that content.
   `AGENTS.md` and report the actual output.
 - Any change to what the chart renders needs a `version:` bump in `Chart.yaml`, because
   released versions are immutable. Say which bump you chose and why.
-- This chart is consumed by `gitops/helm/paperless-app` in `dominik-ba/my-raspi-cluster`.
-  When a change alters rendered output, call out the effect on that deployment.
+- When a change alters rendered output, call out the effect on existing installations
+  (resource names, selector labels, PVCs, StatefulSet fields).
 - Do not weaken workflow permissions or switch CI to `pull_request_target`; fork PRs
   must stay without secrets and write access.
 - No secrets belong in this repository.
