@@ -11,10 +11,9 @@ published as an OCI artifact to `oci://ghcr.io/dominik-ba/charts/paperless`. The
 public; anyone can open pull requests from forks.
 
 The chart has no site-specific configuration (no secret manager, hostnames, node
-placement or storage classes). The main consumer is the `paperless-app` wrapper chart
-in [dominik-ba/my-raspi-cluster](https://github.com/dominik-ba/my-raspi-cluster)
-(`gitops/helm/paperless-app`), which adds 1Password, ingress host and SMB storage and is
-deployed by ArgoCD. Site-specific values belong in that wrapper, not here.
+placement or storage classes). Consumers add those in their own wrapper chart that
+depends on this one (see "Using this chart as a subchart" in `README.md`);
+site-specific values belong there, not here.
 
 ## Layout
 

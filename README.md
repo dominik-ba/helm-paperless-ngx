@@ -226,11 +226,7 @@ paperless:
 ```
 
 Then add whatever organization-specific features you need (1Password
-integration, custom ingress, monitoring) in the wrapper. For a concrete
-example of this pattern (1Password integration, fixed ingress host, SMB
-storage), see the `paperless-app` wrapper chart in
-[dominik-ba/my-raspi-cluster](https://github.com/dominik-ba/my-raspi-cluster/tree/main/gitops/helm/paperless-app),
-which consumes this chart as an OCI dependency.
+integration, custom ingress, monitoring) in the wrapper.
 
 ## Troubleshooting
 

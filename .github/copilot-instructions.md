@@ -8,8 +8,8 @@ short standalone summary for Copilot Chat, agent mode and Copilot CLI.
 
 Generic Helm chart for Paperless-ngx, published to
 `oci://ghcr.io/dominik-ba/charts/paperless`. Bitnami `postgresql` and `redis` are
-subcharts; Gotenberg and Tika are optional. Site-specific configuration lives in the
-`paperless-app` wrapper chart in `dominik-ba/my-raspi-cluster`, not here.
+subcharts; Gotenberg and Tika are optional. Site-specific configuration belongs in a
+consumer's wrapper chart, not here.
 
 ## Commands
 
