@@ -6,23 +6,28 @@ on:
     branches:
       - main
 
+# Fork PRs run with a read-only token and no secrets. Keep it that way:
+# never switch this workflow to pull_request_target.
+permissions:
+  contents: read
+
 jobs:
   lint-and-test:
     name: Lint & Validate
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          fetch-depth: 0
+          persist-credentials: false
 
       - name: Set up Helm
-        uses: azure/setup-helm@v4
+        uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
         with:
-          version: v3.22.1
+          version: v4.3.1
 
-      - name: Update dependencies
-        run: helm dependency update .
+      - name: Build dependencies (from Chart.lock)
+        run: helm dependency build .
 
       - name: Lint chart (strict)
         run: helm lint . --strict

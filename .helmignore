@@ -21,3 +21,8 @@
 .idea/
 *.tmproj
 .vscode/
+# Repository-only files
+.github/
+AGENTS.md
+CLAUDE.md
+renovate.json

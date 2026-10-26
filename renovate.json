@@ -1,6 +1,6 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:recommended"],
+  "extends": ["config:recommended", "helpers:pinGitHubActionDigests"],
   "customManagers": [
     {
       "customType": "regex",
@@ -21,6 +21,11 @@
     }
   ],
   "packageRules": [
+    {
+      "description": "Bump the chart version with every subchart or image update, so main always holds a releasable version (release.yml publishes it)",
+      "matchManagers": ["helmv3", "helm-values"],
+      "bumpVersion": "patch"
+    },
     {
       "matchUpdateTypes": ["major"],
       "assignees": ["dominik-ba"]
