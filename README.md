@@ -32,7 +32,7 @@ customizations. It's designed to be:
 
 ```bash
 helm install paperless oci://ghcr.io/dominik-ba/charts/paperless \
-  --version 0.2.0 \
+  --version 0.3.0 \
   --namespace paperless \
   --create-namespace
 ```
@@ -57,7 +57,7 @@ kubectl create secret generic paperless-secret \
 
 ```bash
 helm install paperless oci://ghcr.io/dominik-ba/charts/paperless \
-  --version 0.2.0 \
+  --version 0.3.0 \
   --namespace paperless --create-namespace \
   --set secrets.create=true \
   --set secrets.adminUser=admin \
@@ -191,7 +191,7 @@ spec:
   source:
     chart: paperless
     repoURL: ghcr.io/dominik-ba/charts
-    targetRevision: 0.2.0
+    targetRevision: 0.3.0
     helm:
       valueFiles:
         - values.yaml
@@ -213,7 +213,7 @@ that on top, create a small wrapper chart that depends on this one:
 # Chart.yaml
 dependencies:
   - name: paperless
-    version: "0.2.0"
+    version: "0.3.0"
     repository: "oci://ghcr.io/dominik-ba/charts"
 
 # values.yaml
@@ -273,24 +273,36 @@ kubectl delete pod -l app.kubernetes.io/name=postgresql -n paperless
 
 | Chart | Version | Repository |
 |---|---|---|
-| postgresql | 18.8.17 | oci://registry-1.docker.io/bitnamicharts |
-| redis | 28.0.15 | oci://registry-1.docker.io/bitnamicharts |
+| postgresql | 18.12.15 | oci://registry-1.docker.io/bitnamicharts |
+| redis | 28.3.9 | oci://registry-1.docker.io/bitnamicharts |
 
 ## CI/CD
 
 | Workflow | Trigger | Purpose |
 |---|---|---|
 | [CI](.github/workflows/ci.yml) | PRs & pushes to `main` | Lint, multi-scenario template rendering, kubeconform validation |
-| [Release](.github/workflows/release.yml) | Semver tags `v*.*.*` | Package and push OCI artifact to `ghcr.io`, cut a GitHub Release |
+| [Release](.github/workflows/release.yml) | `Chart.yaml` changes on `main` | If the chart version is not released yet: push the OCI artifact to `ghcr.io`, create tag `v<version>` and a GitHub Release |
 
 ### Releasing a new version
 
-1. Bump `version` in [Chart.yaml](Chart.yaml)
-2. Commit and push to `main`; CI must pass
-3. Tag the commit: `git tag v<version> && git push origin v<version>`
-4. The release workflow packages and pushes
-   `ghcr.io/dominik-ba/charts/paperless:<version>` and creates a GitHub
-   Release with install/upgrade instructions
+Releases are driven by the `version:` in [Chart.yaml](Chart.yaml):
+
+1. Bump `version` in Chart.yaml in a PR; CI must pass
+2. Merge to `main`. The release workflow sees the unreleased version,
+   pushes `ghcr.io/dominik-ba/charts/paperless:<version>`, tags the commit
+   `v<version>` and creates a GitHub Release
+
+Renovate bumps the patch version together with every subchart or image
+update, so dependency updates are released without manual steps.
+
+Released versions are immutable. The workflow never re-pushes a version that
+already has a tag or an OCI artifact; bump the version instead.
+
+### Pull requests from forks
+
+CI runs on PRs from forks with a read-only token and without secrets.
+Workflows from first-time and outside contributors need approval before they
+run.
 
 ## Links
 
