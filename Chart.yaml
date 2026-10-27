@@ -2,7 +2,7 @@ apiVersion: v2
 name: paperless
 description: A generic, configurable Helm chart for Paperless-ngx on Kubernetes
 type: application
-version: 0.3.1
+version: 0.3.2
 # renovate: depName=ghcr.io/paperless-ngx/paperless-ngx datasource=docker
 appVersion: "v2.19.6"
 home: https://github.com/dominik-ba/helm-paperless-ngx
@@ -19,6 +19,6 @@ dependencies:
     repository: "oci://registry-1.docker.io/bitnamicharts"
     condition: postgresql.enabled
   - name: redis
-    version: 28.3.9
+    version: 28.3.10
     repository: "oci://registry-1.docker.io/bitnamicharts"
     condition: redis.enabled
