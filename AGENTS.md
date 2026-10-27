@@ -92,6 +92,32 @@ Before proposing a change as complete, run and report:
 - Third-party actions are pinned to commit SHAs (Renovate keeps them current). Keep new
   actions pinned the same way.
 
+## Pitfalls
+
+- **Verify published artifacts without local registry logins.** Helm and Docker fall back to
+  a Docker credential store (`credsStore` in `~/.docker/config.json`, e.g. Docker Desktop).
+  A stale GHCR login there makes public packages fail with `403 denied`, and
+  `--registry-config /dev/null` does not stop Helm from using it. Use an empty
+  `DOCKER_CONFIG` directory plus an empty `--registry-config` file, or the anonymous token
+  flow: `curl "https://ghcr.io/token?scope=repository:<owner>/<name>:pull&service=ghcr.io"`,
+  then `GET https://ghcr.io/v2/<owner>/<name>/tags/list` with the bearer token.
+- GHCR package visibility is a separate setting from repository visibility.
+- `gh pr edit` can fail with "Projects (classic) is being deprecated". Use
+  `gh api -X PATCH repos/<owner>/<repo>/pulls/<n> -f title=... -F body=@file.md`.
+- This repository is public: never reference private consumer repositories (names, paths,
+  hostnames, cluster details) in docs, AI files, comments, commit messages or PR texts.
+- **Renovate's Docker versioning only compares tags with the same number of parts.** Tika
+  publishes four-part 3.x tags (`3.3.3.0`) and three-part 4.x tags (`4.1.0`), so a `3.1.0`
+  pin never sees newer 3.x releases. If an image gets no update PRs, check the Dependency
+  Dashboard issue and consider a `versioning` regex.
+- **Changing a default from a floating tag (`latest`) to a pinned tag** can downgrade
+  existing installations: `latest` may already be newer than the pin. Check the newest
+  tag of that line and say so in the PR.
+- The Bitnami `postgresql`/`redis` subcharts run `latest` images. With `IfNotPresent` the
+  version depends on the node's cache; another node pulls today's `latest`. A PostgreSQL
+  major change needs a data migration, so mention the current `latest` major in PRs that
+  touch these images.
+
 ## Scope limit for agents
 
 Only change what the task asks. Do not change released versions, the release flow or

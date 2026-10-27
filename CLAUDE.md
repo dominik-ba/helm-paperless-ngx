@@ -15,3 +15,4 @@ Claude Code operating rules and does not repeat that content.
 - Do not weaken workflow permissions or switch CI to `pull_request_target`; fork PRs
   must stay without secrets and write access.
 - No secrets belong in this repository.
+- Read "Pitfalls" in `AGENTS.md` before release, registry or image-version work.
