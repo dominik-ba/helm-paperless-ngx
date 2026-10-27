@@ -72,6 +72,10 @@ Before proposing a change as complete, run and report:
   in a plain cluster.
 - Images are set in `values.yaml` (`repository` + `tag`) so Renovate's helm-values manager
   can track them; do not hardcode images in templates.
+- Every image is pinned: an exact version tag (`2.20.15`, not `2.20` or `latest`), or for
+  images that only publish `latest` (Bitnami `postgresql`/`redis`) the digest embedded in
+  the tag (`latest@sha256:...`), which Renovate keeps up to date. Keep `appVersion` equal
+  to the Paperless-ngx image tag.
 - PostgreSQL on SMB needs a storage class with strict permissions (see README
   troubleshooting); keep that guidance intact.
 - 2-space indentation for YAML, JSON and templates; honor `.editorconfig`.
