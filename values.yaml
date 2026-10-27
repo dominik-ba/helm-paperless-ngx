@@ -35,8 +35,14 @@ APP_DB_PASSWORD: "your-password-here" # Must match DB_PASSWORD (see postgresql.p
 
 ## subcharts
 postgresql:
-  # image:
-  #   tag: 18
+  # Bitnami publishes only `latest` on Docker Hub (versioned tags are frozen in
+  # bitnamilegacy), so the image is pinned by digest. Renovate updates the digest in a PR
+  # that is not automerged: check the PostgreSQL major version before merging, a major
+  # change needs a data migration. This digest is PostgreSQL 18.6.0.
+  image:
+    registry: registry-1.docker.io
+    repository: bitnami/postgresql
+    tag: "latest@sha256:9834b9d958f73a6c79457af08ebdbb8651fcb51e5efbad22b96636637316c26e"
 
   enabled: true
   createSecret: true
@@ -89,6 +95,11 @@ postgresql:
 
 # Redis subchart
 redis:
+  # Pinned by digest for the same reason as postgresql above. This digest is Redis 8.10.3.
+  image:
+    registry: registry-1.docker.io
+    repository: bitnami/redis
+    tag: "latest@sha256:37c559e3894161f1b1122353a54938e30299383ae801417debda7d3e7d69490a"
   enabled: true
   # For production, configure authentication and resources:
   auth:
@@ -109,7 +120,7 @@ redis:
 paperless:
   image:
     repository: ghcr.io/paperless-ngx/paperless-ngx
-    tag: "2.20"
+    tag: "2.20.15"
     pullPolicy: IfNotPresent
   # Probe tuning to avoid flapping on slow starts
   livenessProbe:
@@ -250,7 +261,7 @@ gotenberg:
   enabled: false
   image:
     repository: docker.io/gotenberg/gotenberg
-    tag: "8.38"
+    tag: "8.38.1"
   # Converts Office documents and emails to PDF
   # Accessible at http://gotenberg:3000
 
@@ -258,6 +269,6 @@ tika:
   enabled: false
   image:
     repository: docker.io/apache/tika
-    tag: "3.1.0"
+    tag: "3.3.3.0"
   # Extracts text and metadata from various file formats
   # Accessible at http://tika:9998

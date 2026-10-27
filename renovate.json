@@ -1,11 +1,16 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:recommended", "helpers:pinGitHubActionDigests"],
+  "extends": [
+    "config:recommended",
+    "helpers:pinGitHubActionDigests"
+  ],
   "customManagers": [
     {
       "customType": "regex",
       "description": "Track paperless-ngx Docker image tag via appVersion renovate comment in Chart.yaml",
-      "fileMatch": ["^Chart\\.yaml$"],
+      "fileMatch": [
+        "^Chart\\.yaml$"
+      ],
       "matchStrings": [
         "# renovate: depName=(?<depName>[^\\s]+)\\s+(?:registryUrl=(?<registryUrl>[^\\s]+)\\s+)?datasource=(?<datasource>[^\\s]+)\\nappVersion: \"(?<currentValue>[^\"]+)\""
       ]
@@ -13,7 +18,9 @@
     {
       "customType": "regex",
       "description": "Track docker images hardcoded in Helm template files",
-      "fileMatch": ["^templates/.*\\.ya?ml$"],
+      "fileMatch": [
+        "^templates/.*\\.ya?ml$"
+      ],
       "matchStrings": [
         "image: (?<depName>[a-z0-9./]+):(?<currentValue>[a-z0-9._-]+)"
       ],
@@ -23,21 +30,62 @@
   "packageRules": [
     {
       "description": "Bump the chart version with every subchart or image update, so main always holds a releasable version (release.yml publishes it)",
-      "matchManagers": ["helmv3", "helm-values"],
+      "matchManagers": [
+        "helmv3",
+        "helm-values"
+      ],
       "bumpVersion": "patch"
     },
     {
-      "matchUpdateTypes": ["major"],
-      "assignees": ["dominik-ba"]
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "assignees": [
+        "dominik-ba"
+      ]
     },
     {
-      "matchUpdateTypes": ["minor"],
+      "matchUpdateTypes": [
+        "minor"
+      ],
       "automerge": true,
       "minimumReleaseAge": "5 days"
     },
     {
-      "matchUpdateTypes": ["patch"],
+      "matchUpdateTypes": [
+        "patch"
+      ],
       "automerge": true
+    },
+    {
+      "description": "One PR for the Paperless-ngx image tag in values.yaml and appVersion in Chart.yaml",
+      "matchPackageNames": [
+        "ghcr.io/paperless-ngx/paperless-ngx"
+      ],
+      "groupName": "paperless-ngx"
+    },
+    {
+      "description": "Tika uses four-part 3.x tags (3.3.3.0) and three-part 4.x tags (4.1.0); Docker versioning only compares tags with the same number of parts",
+      "matchPackageNames": [
+        "docker.io/apache/tika"
+      ],
+      "versioning": "regex:^(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)(?:\\.(?<build>\\d+))?(?:-(?<revision>\\d+))?$"
+    },
+    {
+      "description": "Bitnami images are pinned by digest of `latest`; never automerge, the PostgreSQL/Redis major version may change behind the same tag",
+      "matchPackageNames": [
+        "bitnami/postgresql",
+        "bitnami/redis",
+        "registry-1.docker.io/bitnami/postgresql",
+        "registry-1.docker.io/bitnami/redis"
+      ],
+      "matchUpdateTypes": [
+        "digest"
+      ],
+      "automerge": false,
+      "prBodyNotes": [
+        "Check the image's `APP_VERSION` before merging: a PostgreSQL major version change needs a data migration (pg_dump/restore)."
+      ]
     }
   ]
 }
