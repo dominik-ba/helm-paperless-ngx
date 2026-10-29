@@ -269,6 +269,6 @@ tika:
   enabled: false
   image:
     repository: docker.io/apache/tika
-    tag: "3.3.3.0"
+    tag: "4.2.0-1"
   # Extracts text and metadata from various file formats
   # Accessible at http://tika:9998
