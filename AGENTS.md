@@ -28,6 +28,8 @@ only need a wrapper chart when they add resources this chart does not render (se
 - `.github/workflows/ci.yml`: PR and main CI (lint, template scenarios, kubeconform,
   plaintext-secret check).
 - `.github/workflows/release.yml`: publishes an unreleased `Chart.yaml` version from `main`.
+- `.github/workflows/claude.yml`: runs Claude Code when the repository owner mentions
+  `@claude` in an issue or PR.
 - `renovate.json`: dependency updates, chart version bump, action digest pinning.
 
 ## Commands
@@ -66,6 +68,26 @@ Before proposing a change as complete, run and report:
 - Keep the version references in `README.md` (install, ArgoCD and subchart examples,
   dependency table) in sync with `Chart.yaml`.
 
+## Reviewing dependency update PRs
+
+When asked about a Renovate PR (for example whether it contains breaking changes):
+
+1. Cover every version between the old and the new one, not only the newest. Renovate PR
+   bodies can be truncated, so read the upstream release notes and upgrade guides as well.
+2. Check the findings against this chart: removed or renamed environment variables,
+   ports, paths, user IDs, health checks, required PostgreSQL or Redis versions, database
+   migrations, and whether a rollback is possible. Compare with `values.yaml` and
+   `templates/`.
+3. Render the chart for the PR and for the base branch and diff the output (see
+   "Validation expectations").
+4. Start the answer with the verdict. List each finding with its upstream link, the
+   affected file or value, the effect on existing installations and the required action.
+   Say what you could not verify; "nothing found" only covers what you actually read.
+5. Commit a fix only when the comment asks for one, and keep it to what the update needs.
+   Renovate bumps the patch version, so raise the chart version if "Releases" calls for
+   more. Say in the PR that Renovate treats the branch as edited: it may stop updating it,
+   and requesting a rebase through Renovate discards the extra commits.
+
 ## Conventions to preserve
 
 - Everything site-specific stays configurable through `values.yaml`; defaults must work
@@ -88,7 +110,11 @@ Before proposing a change as complete, run and report:
 - Fork PRs run CI with a read-only `GITHUB_TOKEN` and no secrets. Do not use
   `pull_request_target`, do not add `workflow_run` jobs that consume PR artifacts, and do
   not give PR jobs write permissions or registry logins. Write permissions belong only to
-  the release job on `main`.
+  the release job on `main` and to the job in `claude.yml`.
+- `claude.yml` is the only exception, and it holds because that job has no `pull_request`
+  trigger and only starts for an `@claude` mention by the repository owner. Keep that
+  owner check, do not add `allowed_bots` or `allowed_non_write_users`, and do not give it
+  registry logins or `helm push`.
 - Third-party actions are pinned to commit SHAs (Renovate keeps them current). Keep new
   actions pinned the same way.
 
