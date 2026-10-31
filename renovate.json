@@ -86,6 +86,19 @@
       "prBodyNotes": [
         "Check the image's `APP_VERSION` before merging: a PostgreSQL major version change needs a data migration (pg_dump/restore)."
       ]
+    },
+    {
+      "description": "This action runs with write permissions and the Claude token, so review every update; weekly because it releases often",
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchPackageNames": [
+        "anthropics/claude-code-action"
+      ],
+      "automerge": false,
+      "schedule": [
+        "* 0-3 * * 1"
+      ]
     }
   ]
 }

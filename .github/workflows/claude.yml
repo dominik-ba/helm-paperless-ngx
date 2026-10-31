@@ -1,0 +1,53 @@
+name: Claude Code
+
+# Runs Claude Code when the repository owner mentions @claude in an issue, a PR
+# comment or a PR review. There is no pull_request trigger: fork PRs and bots
+# cannot start this workflow, and opening a PR alone never runs Claude.
+
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+  pull_request_review:
+    types: [submitted]
+  issues:
+    types: [opened]
+
+permissions:
+  contents: read
+
+jobs:
+  claude:
+    name: Respond to @claude
+    if: |
+      (github.event_name == 'issue_comment' && github.event.comment.author_association == 'OWNER' && contains(github.event.comment.body, '@claude')) ||
+      (github.event_name == 'pull_request_review_comment' && github.event.comment.author_association == 'OWNER' && contains(github.event.comment.body, '@claude')) ||
+      (github.event_name == 'pull_request_review' && github.event.review.author_association == 'OWNER' && contains(github.event.review.body, '@claude')) ||
+      (github.event_name == 'issues' && github.event.issue.author_association == 'OWNER' && (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude')))
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      id-token: write
+      actions: read  # read CI results on PRs
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 1
+
+      - name: Set up Helm
+        uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
+        with:
+          version: v4.3.1
+
+      # No helm push or registry access. WebFetch is limited to the places that
+      # hold upstream release notes, because Renovate PR bodies can be truncated.
+      - name: Run Claude Code
+        uses: anthropics/claude-code-action@d535f5172dec02b204866b393d6b20b9b2aaf98d # v1.0.266
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          claude_args: |
+            --allowedTools "Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(git status:*),Bash(git worktree add:*),Bash(diff:*),Bash(helm dependency build:*),Bash(helm lint:*),Bash(helm show:*),Bash(helm template:*),WebFetch(domain:github.com),WebFetch(domain:raw.githubusercontent.com),WebFetch(domain:docs.paperless-ngx.com)"
