@@ -120,7 +120,7 @@ redis:
 paperless:
   image:
     repository: ghcr.io/paperless-ngx/paperless-ngx
-    tag: "2.20.15"
+    tag: "3.4.1"
     pullPolicy: IfNotPresent
   # Probe tuning to avoid flapping on slow starts
   livenessProbe:
