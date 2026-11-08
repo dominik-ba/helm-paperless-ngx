@@ -29,12 +29,47 @@
   ],
   "packageRules": [
     {
-      "description": "Bump the chart version with every subchart or image update, so main always holds a releasable version (release.yml publishes it)",
+      "description": "Bump the chart version with every update that changes what the chart renders (subcharts, images, appVersion), so main always holds a releasable version (release.yml publishes it). bumpVersions works for every manager and bumps once per branch; the managers' own bumpVersion only supports helmv3, not helm-values.",
       "matchManagers": [
         "helmv3",
-        "helm-values"
+        "helm-values",
+        "custom.regex"
       ],
-      "bumpVersion": "patch"
+      "bumpVersions": [
+        {
+          "name": "chart-version",
+          "filePatterns": [
+            "Chart.yaml"
+          ],
+          "matchStrings": [
+            "\\nversion: \"?(?<version>\\d+\\.\\d+\\.\\d+)"
+          ],
+          "bumpType": "patch"
+        }
+      ]
+    },
+    {
+      "description": "A major dependency update can break existing installations: release it as a new chart major, so deploying repositories get a major update PR (no automerge) instead of a patch",
+      "matchManagers": [
+        "helmv3",
+        "helm-values",
+        "custom.regex"
+      ],
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "bumpVersions": [
+        {
+          "name": "chart-version",
+          "filePatterns": [
+            "Chart.yaml"
+          ],
+          "matchStrings": [
+            "\\nversion: \"?(?<version>\\d+\\.\\d+\\.\\d+)"
+          ],
+          "bumpType": "major"
+        }
+      ]
     },
     {
       "matchUpdateTypes": [

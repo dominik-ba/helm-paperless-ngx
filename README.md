@@ -324,8 +324,11 @@ Releases are driven by the `version:` in [Chart.yaml](Chart.yaml):
    pushes `ghcr.io/dominik-ba/charts/paperless:<version>`, tags the commit
    `v<version>` and creates a GitHub Release
 
-Renovate bumps the patch version together with every subchart or image
-update, so dependency updates are released without manual steps.
+Renovate bumps the chart version together with every subchart or image
+update, so dependency updates are released without manual steps: a major
+dependency update becomes a new chart major version, every other update a
+patch version. CI fails a PR that changes the chart while keeping a version
+that is already released.
 
 Released versions are immutable. The workflow never re-pushes a version that
 already has a tag or an OCI artifact; bump the version instead.

@@ -62,9 +62,15 @@ Before proposing a change as complete, run and report:
   GitHub Release.
 - Released versions are immutable. The workflow never re-pushes a version that already
   has a tag or an OCI artifact. Any change to what the chart renders needs a version bump.
-- Renovate bumps the patch version with every subchart or image update. For a manual
-  change: patch for fixes, minor for new values or subchart major updates, major for
-  breaking value changes.
+- Renovate bumps the chart version in the same PR as every subchart, image or
+  `appVersion` update (`bumpVersions` in `renovate.json`): major for a major update,
+  patch for everything else. A dependency major becomes a chart major so that deploying
+  repositories get a major update PR, which they do not automerge. For a manual change:
+  patch for fixes, minor for new values, major for breaking value changes.
+- CI (`chart-version` job, `.github/scripts/check-chart-version.sh`) fails a PR that
+  changes what the chart renders (values, templates, `Chart.lock`, `Chart.yaml` other
+  than `version:`) while its version is already released, or whose version is lower
+  than the newest release.
 - Keep the version references in `README.md` (install, ArgoCD and subchart examples,
   dependency table) in sync with `Chart.yaml`.
 
@@ -84,8 +90,8 @@ When asked about a Renovate PR (for example whether it contains breaking changes
    affected file or value, the effect on existing installations and the required action.
    Say what you could not verify; "nothing found" only covers what you actually read.
 5. Commit a fix only when the comment asks for one, and keep it to what the update needs.
-   Renovate bumps the patch version, so raise the chart version if "Releases" calls for
-   more. Say in the PR that Renovate treats the branch as edited: it may stop updating it,
+   Renovate already bumps the chart version (see "Releases"); raise it further only if
+   the fix itself calls for more. Say in the PR that Renovate treats the branch as edited: it may stop updating it,
    and requesting a rebase through Renovate discards the extra commits.
 
 ## Conventions to preserve
