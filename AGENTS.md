@@ -145,6 +145,12 @@ When asked about a Renovate PR (for example whether it contains breaking changes
 - **Changing a default from a floating tag (`latest`) to a pinned tag** can downgrade
   existing installations: `latest` may already be newer than the pin. Check the newest
   tag of that line and say so in the PR.
+- **Gotenberg stays on 8.x.** Gotenberg 9 removed the `/forms/pdfengines/*` routes and renamed
+  post-processing fields (`pdfa` -> `nativePdfa`, stages). `gotenberg-client`, which
+  Paperless-ngx uses, still calls the old API (also in Paperless 3.x), so email import and
+  Office conversion would fail with 404/400. `renovate.json` pins `allowedVersions: "<9"`;
+  lift it once Paperless ships a `gotenberg-client` with Gotenberg 9 support (see
+  https://github.com/stumpylog/gotenberg-client/issues/149).
 - The Bitnami `postgresql`/`redis` subcharts run `latest` images. With `IfNotPresent` the
   version depends on the node's cache; another node pulls today's `latest`. A PostgreSQL
   major change needs a data migration, so mention the current `latest` major in PRs that
