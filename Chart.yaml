@@ -2,7 +2,7 @@ apiVersion: v2
 name: paperless
 description: A generic, configurable Helm chart for Paperless-ngx on Kubernetes
 type: application
-version: 0.3.8
+version: 1.0.0
 # renovate: depName=ghcr.io/paperless-ngx/paperless-ngx datasource=docker
 appVersion: "2.20.15"
 home: https://github.com/dominik-ba/helm-paperless-ngx
