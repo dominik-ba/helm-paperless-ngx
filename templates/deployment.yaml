@@ -26,7 +26,10 @@ spec:
             - containerPort: 8000
               protocol: TCP
           env:
-            # Database connection
+            # Database connection (bundled PostgreSQL subchart). Paperless-ngx v3 no longer
+            # infers the engine from PAPERLESS_DBHOST and would fall back to SQLite.
+            - name: PAPERLESS_DBENGINE
+              value: postgresql
             - name: PAPERLESS_DBHOST
               value: "{{ .Release.Name }}-postgresql"
             - name: PAPERLESS_DBNAME
@@ -102,7 +105,12 @@ spec:
               value: {{ .Values.paperless.filenameFormat | quote }}
             {{- end }}
             {{- if .Values.paperless.consumerPolling }}
+            # v3 renamed PAPERLESS_CONSUMER_POLLING to PAPERLESS_CONSUMER_POLLING_INTERVAL.
+            # Both are set so the value works on 2.x and 3.x; without polling the consumer
+            # falls back to inotify, which does not see files on SMB/NFS volumes.
             - name: PAPERLESS_CONSUMER_POLLING
+              value: {{ .Values.paperless.consumerPolling | quote }}
+            - name: PAPERLESS_CONSUMER_POLLING_INTERVAL
               value: {{ .Values.paperless.consumerPolling | quote }}
             {{- end }}
             {{- if .Values.paperless.consumerRecursive }}
