@@ -42,7 +42,7 @@ postgresql:
   image:
     registry: registry-1.docker.io
     repository: bitnami/postgresql
-    tag: "latest@sha256:9834b9d958f73a6c79457af08ebdbb8651fcb51e5efbad22b96636637316c26e"
+    tag: "latest@sha256:d80128c86146ef35185682c08594b560cbb0dab39a3feabedffa820e1b54687c"
 
   enabled: true
   createSecret: true
@@ -99,7 +99,7 @@ redis:
   image:
     registry: registry-1.docker.io
     repository: bitnami/redis
-    tag: "latest@sha256:37c559e3894161f1b1122353a54938e30299383ae801417debda7d3e7d69490a"
+    tag: "latest@sha256:59078af5aec997137eb95f34fed376487b471e05c9a244c2812a13598c434950"
   enabled: true
   # For production, configure authentication and resources:
   auth:
@@ -261,7 +261,7 @@ gotenberg:
   enabled: false
   image:
     repository: docker.io/gotenberg/gotenberg
-    tag: "8.39.0"
+    tag: "8.40.0"
   # Converts Office documents and emails to PDF
   # Accessible at http://gotenberg:3000
 

@@ -107,6 +107,13 @@
       "versioning": "regex:^(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)(?:\\.(?<build>\\d+))?(?:-(?<revision>\\d+))?$"
     },
     {
+      "description": "Stay on Gotenberg 8: Gotenberg 9 removed the /forms/pdfengines routes and renamed the pdfa field, which gotenberg-client (used by Paperless-ngx, also 3.x) still calls, so email import and Office conversion fail with 404/400. Lift this once Paperless ships a gotenberg-client with Gotenberg 9 support. See https://github.com/stumpylog/gotenberg-client/issues/149 and https://github.com/paperless-ngx/paperless-ngx/issues/14702",
+      "matchPackageNames": [
+        "docker.io/gotenberg/gotenberg"
+      ],
+      "allowedVersions": "<9"
+    },
+    {
       "description": "Bitnami images are pinned by digest of `latest`; never automerge, the PostgreSQL/Redis major version may change behind the same tag",
       "matchPackageNames": [
         "bitnami/postgresql",

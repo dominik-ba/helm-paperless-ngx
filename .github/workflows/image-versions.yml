@@ -1,0 +1,77 @@
+name: Image versions
+
+# Renovate pins the Bitnami PostgreSQL/Redis images as `latest@sha256:...`, so its PRs show
+# two digests and hide which application version they contain. This workflow reads the
+# versions from the registry and posts them as one comment on the Renovate PR.
+#
+# Security: this is the only PR-triggered job with a write permission (pull-requests: write,
+# to post the comment). It stays safe because
+#   - it uses `pull_request`, never `pull_request_target`: PRs from forks always get a
+#     read-only token and no secrets, and the job is skipped for them anyway;
+#   - it only runs for PRs from branches of this repository opened by renovate[bot];
+#   - the token is passed only to the step that posts the comment, not to the step that
+#     reads the registry;
+#   - the posted text is built from validated values (see image-versions.sh).
+# Do not widen the `if:` condition and do not add other write permissions.
+
+on:
+  pull_request:
+    paths:
+      - values.yaml
+
+permissions:
+  contents: read
+
+jobs:
+  image-versions:
+    name: Comment image versions
+    if: |
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.user.login == 'renovate[bot]'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write  # post the comment on the PR
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Read image versions from the registry
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          BASE_REPO: ${{ github.repository }}
+        run: |
+          # Base values.yaml from the public repository (no token needed).
+          git fetch --quiet --depth=1 "https://github.com/${BASE_REPO}.git" "$BASE_SHA"
+          git show "$BASE_SHA:values.yaml" > "$RUNNER_TEMP/base-values.yaml"
+          {
+            echo "<!-- image-versions -->"
+            .github/scripts/image-versions.sh "$RUNNER_TEMP/base-values.yaml" values.yaml
+          } > "$RUNNER_TEMP/comment.md"
+          # Only the marker line means no digest-pinned image changed.
+          if [ "$(wc -l < "$RUNNER_TEMP/comment.md")" -le 1 ]; then
+            echo "No digest-pinned image changed."
+            rm "$RUNNER_TEMP/comment.md"
+          else
+            cat "$RUNNER_TEMP/comment.md"
+          fi
+
+      - name: Post or update the comment
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          [ -f "$RUNNER_TEMP/comment.md" ] || exit 0
+          id=$(gh api "repos/${GH_REPO}/issues/${PR_NUMBER}/comments" --paginate \
+            --jq '.[] | select(.user.login == "github-actions[bot]" and (.body | startswith("<!-- image-versions -->"))) | .id' \
+            | head -n 1)
+          if [ -n "$id" ]; then
+            gh api -X PATCH "repos/${GH_REPO}/issues/comments/${id}" -F body=@"$RUNNER_TEMP/comment.md" >/dev/null
+            echo "Updated comment $id"
+          else
+            gh api -X POST "repos/${GH_REPO}/issues/${PR_NUMBER}/comments" -F body=@"$RUNNER_TEMP/comment.md" >/dev/null
+            echo "Created comment"
+          fi

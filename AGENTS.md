@@ -30,6 +30,9 @@ only need a wrapper chart when they add resources this chart does not render (se
 - `.github/workflows/release.yml`: publishes an unreleased `Chart.yaml` version from `main`.
 - `.github/workflows/claude.yml`: runs Claude Code when the repository owner mentions
   `@claude` in an issue or PR.
+- `.github/workflows/image-versions.yml` + `.github/scripts/image-versions.sh`: comments the
+  application versions behind changed `latest@sha256:...` pins (PostgreSQL/Redis) on
+  Renovate PRs, because the PR itself only shows two digests.
 - `renovate.json`: dependency updates, chart version bump, action digest pinning.
 
 ## Commands
@@ -117,7 +120,12 @@ When asked about a Renovate PR (for example whether it contains breaking changes
   `pull_request_target`, do not add `workflow_run` jobs that consume PR artifacts, and do
   not give PR jobs write permissions or registry logins. Write permissions belong only to
   the release job on `main` and to the job in `claude.yml`.
-- `claude.yml` is the only exception, and it holds because that job has no `pull_request`
+- `image-versions.yml` is the second PR-triggered job with a write permission
+  (`pull-requests: write`, only to post one comment). It uses `pull_request`, runs only for
+  same-repository PRs opened by `renovate[bot]`, and passes the token only to the step that
+  posts the comment. Keep those conditions, do not add other permissions, and keep the
+  posted text built from validated values (a registry is external data).
+- `claude.yml` is the other exception, and it holds because that job has no `pull_request`
   trigger and only starts for an `@claude` mention by the repository owner. Keep that
   owner check, do not add `allowed_bots` or `allowed_non_write_users`, and do not give it
   registry logins or `helm push`.
@@ -145,6 +153,12 @@ When asked about a Renovate PR (for example whether it contains breaking changes
 - **Changing a default from a floating tag (`latest`) to a pinned tag** can downgrade
   existing installations: `latest` may already be newer than the pin. Check the newest
   tag of that line and say so in the PR.
+- **Gotenberg stays on 8.x.** Gotenberg 9 removed the `/forms/pdfengines/*` routes and renamed
+  post-processing fields (`pdfa` -> `nativePdfa`, stages). `gotenberg-client`, which
+  Paperless-ngx uses, still calls the old API (also in Paperless 3.x), so email import and
+  Office conversion would fail with 404/400. `renovate.json` pins `allowedVersions: "<9"`;
+  lift it once Paperless ships a `gotenberg-client` with Gotenberg 9 support (see
+  https://github.com/stumpylog/gotenberg-client/issues/149).
 - The Bitnami `postgresql`/`redis` subcharts run `latest` images. With `IfNotPresent` the
   version depends on the node's cache; another node pulls today's `latest`. A PostgreSQL
   major change needs a data migration, so mention the current `latest` major in PRs that

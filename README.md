@@ -32,7 +32,7 @@ customizations. It's designed to be:
 
 ```bash
 helm install paperless oci://ghcr.io/dominik-ba/charts/paperless \
-  --version 0.3.7 \
+  --version 0.3.10 \
   --namespace paperless \
   --create-namespace
 ```
@@ -57,7 +57,7 @@ kubectl create secret generic paperless-secret \
 
 ```bash
 helm install paperless oci://ghcr.io/dominik-ba/charts/paperless \
-  --version 0.3.7 \
+  --version 0.3.10 \
   --namespace paperless --create-namespace \
   --set secrets.create=true \
   --set secrets.adminUser=admin \
@@ -77,7 +77,7 @@ helm upgrade paperless oci://ghcr.io/dominik-ba/charts/paperless \
 
 #### Preparing for Paperless-ngx 3.x
 
-Since chart 0.3.7 the Deployment sets `PAPERLESS_DBENGINE=postgresql` and passes
+Since chart 0.3.10 the Deployment sets `PAPERLESS_DBENGINE=postgresql` and passes
 `paperless.consumerPolling` as both `PAPERLESS_CONSUMER_POLLING` (2.x) and
 `PAPERLESS_CONSUMER_POLLING_INTERVAL` (3.x). Both work with Paperless-ngx 2.20.x, so
 the chart can move to 3.x by changing only the image. Before that upgrade, read the
@@ -203,7 +203,7 @@ spec:
   source:
     chart: paperless
     repoURL: ghcr.io/dominik-ba/charts
-    targetRevision: 0.3.7
+    targetRevision: 0.3.10
     helm:
       valueFiles:
         - values.yaml
@@ -230,7 +230,7 @@ your own values file. No wrapper chart is needed.
 
 ```bash
 helm install paperless oci://ghcr.io/dominik-ba/charts/paperless \
-  --version 0.3.7 -n paperless --create-namespace -f my-values.yaml
+  --version 0.3.10 -n paperless --create-namespace -f my-values.yaml
 ```
 
 With ArgoCD, keep the values file in your own Git repository and reference it
@@ -241,7 +241,7 @@ spec:
   sources:
     - chart: paperless
       repoURL: ghcr.io/dominik-ba/charts
-      targetRevision: 0.3.7
+      targetRevision: 0.3.10
       helm:
         valueFiles:
           - $values/paperless/values.yaml
@@ -262,7 +262,7 @@ adds them in its own `templates/`:
 # Chart.yaml
 dependencies:
   - name: paperless
-    version: "0.3.7"
+    version: "0.3.10"
     repository: "oci://ghcr.io/dominik-ba/charts"
 
 # values.yaml: values for this chart go under the dependency name
