@@ -42,7 +42,7 @@ postgresql:
   image:
     registry: registry-1.docker.io
     repository: bitnami/postgresql
-    tag: "latest@sha256:d80128c86146ef35185682c08594b560cbb0dab39a3feabedffa820e1b54687c"
+    tag: "latest@sha256:f6165e04250e7db79db6f7edaf894710573d12bd2310cac85b1c8109f79e0fdb"
 
   enabled: true
   createSecret: true
